@@ -25,18 +25,12 @@ const solve = (inputString: string, length: number) => {
       for (let k = 1; k < knots.length; k++) {
         const distance = [knots[k - 1][0] - knots[k][0], knots[k - 1][1] - knots[k][1]]
 
-        if (distance[0] === 0 && distance[1] === 0) continue;
+        if (Math.abs(distance[0]) < 2 && Math.abs(distance[1]) < 2) continue;
 
-        if (distance[0] > 1 && distance[1] === 0) knots[k][0] += 1
-        if (distance[0] < -1 && distance[1] === 0) knots[k][0] -= 1
-        if (distance[0] === 0 && distance[1] > 1) knots[k][1] += 1
-        if (distance[0] === 0 && distance[1] < -1) knots[k][1] -= 1
-
-        const distanceSize = Math.abs(distance[0]) + Math.abs(distance[1])
-        if (distance[0] > 0 && distance[1] > 0 && distanceSize > 2) { knots[k][0] += 1; knots[k][1] += 1 }
-        if (distance[0] < 0 && distance[1] > 0 && distanceSize > 2) { knots[k][0] -= 1; knots[k][1] += 1 }
-        if (distance[0] > 0 && distance[1] < 0 && distanceSize > 2) { knots[k][0] += 1; knots[k][1] -= 1 }
-        if (distance[0] < 0 && distance[1] < 0 && distanceSize > 2) { knots[k][0] -= 1; knots[k][1] -= 1 }
+        if (distance[0] > 0) knots[k][0] += 1
+        if (distance[0] < 0) knots[k][0] -= 1
+        if (distance[1] > 0) knots[k][1] += 1
+        if (distance[1] < 0) knots[k][1] -= 1
       }
 
       visited[knots[knots.length - 1].join(',')] = true
