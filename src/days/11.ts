@@ -32,7 +32,7 @@ const getNewItem = (item: number, formula: {
 
 const solve = (inputString: string, rounds: number, dividedBy: number) => {
   const monkies = parseMonkies(inputString)
-  const tests = monkies.map(({ test }) => test).reduce((acc, curr) => acc * curr, 1)
+  const tests = monkies.map(({ test }) => test).reduce((acc, curr) => acc * curr, 1) * dividedBy
 
   for (let round = 0; round < rounds; round++) {
     for (const monkey of monkies) {
