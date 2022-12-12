@@ -1,6 +1,6 @@
 import { Test } from '.';
 
-const solve = (inputString: string) => {
+const solve = (inputString: string, anyA?: boolean) => {
   const sizeX = inputString.split('\n')[0].length
   const flatArr = inputString.split('\n').flatMap(line => line.split(''))
   const start = flatArr.indexOf('S')
@@ -14,8 +14,8 @@ const solve = (inputString: string) => {
   inputString = inputString.replace('E', 'z')
   const arr = inputString.split('\n').map(line => line.split(''))
 
-  const ready = [`${startX}-${startY}`]
-  const score = { [`${startX}-${startY}`]: 0 }
+  const ready = [`${endX}-${endY}`]
+  const score = { [`${endX}-${endY}`]: 0 }
 
   while (ready.length) {
     const [x, y] = ready.shift().split('-').map(Number);
@@ -27,7 +27,7 @@ const solve = (inputString: string) => {
       const newPosition = arr[newX]?.[newY]
       if (!newPosition) continue
 
-      if (newPosition.charCodeAt(0) - current > 1) continue
+      if (current - newPosition.charCodeAt(0) > 1) continue
 
       const newScore = score[`${newX}-${newY}`]
       const currentScore = score[`${x}-${y}`]
@@ -35,7 +35,8 @@ const solve = (inputString: string) => {
       if (newScore && newScore - currentScore < 2) continue
 
       score[`${newX}-${newY}`] = score[`${x}-${y}`] + 1
-      if (newX === endX && newY === endY) return score[`${newX}-${newY}`]
+      if (newX === startX && newY === startY) return score[`${newX}-${newY}`]
+      if (anyA && newPosition === 'a') return score[`${newX}-${newY}`]
       ready.push(`${newX}-${newY}`)
     }
   }
@@ -46,21 +47,7 @@ export const first = (inputString: string) => {
 };
 
 export const second = (inputString: string) => {
-  const indexes = []
-  for (let i = 0; i < inputString.length; i++) {
-    if (inputString[i] === 'a' || inputString[i] === 'S') indexes.push(i)
-  }
-  const score = []
-
-  indexes.forEach(index => {
-    let newInput = inputString
-    newInput = newInput.replace('S', 'a')
-    newInput = newInput.slice(0, index) + 'S' + newInput.slice(index + 1)
-
-    score.push(solve(newInput))
-  })
-
-  return Math.min(...score.filter(a => !!a))
+  return solve(inputString, true)
 };
 
 export const tests: Test[] = [{
