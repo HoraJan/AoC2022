@@ -1,5 +1,15 @@
 import { Test } from '.';
 
+const getScore = (state: { [key: string]: { opened: boolean } }, valves: { [key: string]: { rate: number } }) => {
+  return Object.entries(state).reduce((acc, [name, opened]) => opened ? acc + valves[name].rate : acc, 0)
+}
+
+const stringify = (current) => {
+  const currentPositions = current.position
+  // console.log(currentPositions)
+return currentPositions + '-' + current.destination + '-' + Object.values(current.state).join(',')
+}
+
 const parseValves = (inputString: string) => {
   const state = {}
   const valves = {}
@@ -19,75 +29,118 @@ const parseValves = (inputString: string) => {
     return {valves, state}
 }
 
-const getDistanceMatrix = (valves: any) => {
-  const distanceMatrix = new Map()
+const solve = (valves: any, state: any, length: number) => {
+    const distanceMatrix = new Map()
 
-  Object.values<{name: string, edges: string[]}>(valves).forEach(valve => {
-    const map = new Map()
-    // const visited = {}
-    const queue = valve.edges.map(edge => ({edge, price: 1}))
-    while (queue.length) {
-      const edge = queue.shift()
-      // console.log(edge)
-      if (map.has(edge.edge)) continue;
+    Object.values<{name: string, edges: string[]}>(valves).forEach(valve => {
+      const map = new Map()
+      // const visited = {}
+      const queue = valve.edges.map(edge => ({edge, price: 1}))
+      while (queue.length) {
+        const edge = queue.shift()
+        // console.log(edge)
+        if (map.has(edge.edge)) continue;
 
-      map.set(edge.edge, edge.price)
-      // console.log(edge.edge, valves)
-      valves[edge.edge].edges.forEach(newEdge => {
-        if (map.has(newEdge)) return
+        map.set(edge.edge, edge.price)
+        // console.log(edge.edge, valves)
+        valves[edge.edge].edges.forEach(newEdge => {
+          if (map.has(newEdge)) return
 
-        queue.push({edge: newEdge, price: edge.price+1})
-      })
-    }
-    distanceMatrix.set(valve.name, map)
-  })
-
-  return distanceMatrix
-}
-
-const solve = (valves: any, state: any, distanceMatrix: any, length: number) => {
-
-  const nextOptimalValve = (currValve: string, timeLeft: number, contesters: string[]) => {
-    let optimalValve: string = null;
-    let value = 0;
-    const allSolutions = []
-  
-    for (const contester of contesters) {
-      const newContesters = [...contesters].filter((v) => v !== contester);
-      const newTime = timeLeft - distanceMatrix.get(currValve).get(contester) - 1;
-      if (newTime <= 0) continue;
-      // console.log(contester)
-      let score = newTime * valves[contester].rate;
-      const optimal = nextOptimalValve(contester, newTime, newContesters);
-      score += optimal.value;
-  
-      if (score > value) {
-        optimalValve = contester;
-        value = score;
+          queue.push({edge: newEdge, price: edge.price+1})
+        })
       }
-    }
-  
-    return { optimalValve, value };
-  };
-  const result = nextOptimalValve('AA', length, state)
+      distanceMatrix.set(valve.name, map)
+    })
 
-  console.log(result)
-  return result.value;
+// console.log(distanceMatrix)
+  const memo = new Map()
+
+  const queue = [{
+    position: 'AA',
+    destination: 'AA',
+    distanceToDestination: 0,
+    steps: 0,
+    state: JSON.parse(JSON.stringify(state)),
+    score: 0,
+    stepScore: 0,
+  }]
+
+  let maxScore = 0;
+  let count = 0;
+
+  const stringified = stringify(queue[0])
+  memo.set(stringified,{steps: queue[0].steps, score: queue[0].score})
+  
+  while (queue.length) {
+    const situation = queue.pop()
+    const timeLeft = situation.distanceToDestination
+    count++;
+    // console.log(count)
+
+    if (situation.steps + timeLeft >= length) {
+      const toSimulate = length - situation.steps
+      situation.score += toSimulate * situation.stepScore
+      if (maxScore < situation.score) {
+        maxScore= situation.score
+      }
+      continue
+    }
+    
+    situation.steps += timeLeft
+    situation.score += timeLeft * situation.stepScore
+    situation.distanceToDestination -= 0
+
+    situation.position = situation.destination
+    situation.destination = null
+    situation.state[situation.position] = true;
+    situation.stepScore = getScore(situation.state, valves)
+
+    if (Object.values(situation.state).every(valve => valve)) {
+      if (maxScore < situation.score + (length-situation.steps)*situation.stepScore) {
+        maxScore= situation.score + (length-situation.steps)*situation.stepScore
+        // console.log(count, maxScore, queue.length,situation)
+      }
+      continue
+    }
+
+    Object.entries(situation.state).filter(([_name, state]) => !state).forEach(([name]) => {
+      // console.log(situation.state,name)
+      let newOne = false
+      const newSituation = {...situation, state: {...situation.state}}
+      newSituation.destination = name
+      newSituation.distanceToDestination = distanceMatrix.get(newSituation.position).get(name) + 1
+      const stringified = stringify(newSituation)
+      if (!memo.has(stringified)) {
+        memo.set(stringified,{steps: newSituation.steps, score: newSituation.score})
+        newOne = true
+      }
+      
+      const {score, steps} = memo.get(stringified)
+      const balancedScore = (steps-newSituation.steps) * newSituation.stepScore + newSituation.score
+      
+      // console.log(newOne,balancedScore, score, steps, newSituation.steps)
+      if (newOne || balancedScore > score || (balancedScore === score && steps > newSituation.steps)) {
+        memo.set(stringified,{steps: newSituation.steps, score: newSituation.score})
+        // console.log(newSituation)
+        queue.push(newSituation)
+        // console.log(queue.length)
+      }
+    })
+  }
+console.log(count)
+  return maxScore;
 };
 
 export const first = (inputString: string) => {
   const {valves, state} = parseValves(inputString)
-  const distanceMatrix = getDistanceMatrix(valves)
 
-  return solve(valves, Object.keys(state),distanceMatrix, 30);
+  return solve(valves, state, 30);
 }
 // export const first = (inputString: string) => 1651;
 
 export const second = (inputString: string) => {
   const {valves, state} = parseValves(inputString)
-  const distanceMatrix = getDistanceMatrix(valves)
-
-  return solve(valves, Object.keys(state), distanceMatrix,26)
+  return solve(valves, state, 26)
 };
 
 export const tests: Test[] = [{
